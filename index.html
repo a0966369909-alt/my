@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MY PORTFOLIO | 個人 IP 成果展</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- 導入 Google 字體與 Icon -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- 導覽列 -->
+  <nav class="navbar">
+    <div class="logo">YOUR IP<span>.</span></div>
+    <ul class="nav-links">
+      <li><a href="#hero">主頁</a></li>
+      <li><a href="#about">關於我</a></li>
+      <li><a href="#portfolio">作品展示</a></li>
+      <li><a href="#skills">核心技能</a></li>
+      <li><a href="#contact">聯絡我</a></li>
+    </ul>
+    <button id="theme-toggle" class="theme-btn"><i data-lucide="moon"></i></button>
+  </nav>
+
+  <!-- Hero 區塊 -->
+  <section id="hero" class="hero-section">
+    <div class="hero-content">
+      <span class="badge">UNIVERSITY WORKS 2022-2026</span>
+      <h1>探索我的<br><span class="highlight">創意與視覺世界</span></h1>
+      <p>涵蓋 IP 角色設計、包裝視覺、微電影企劃與數位行為研究。</p>
+      <div class="hero-btns">
+        <a href="#portfolio" class="btn primary-btn">瀏覽作品 <i data-lucide="arrow-down-right"></i></a>
+        <a href="#contact" class="btn secondary-btn">聯絡我</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 關於我 -->
+  <section id="about" class="section">
+    <h2 class="section-title">ABOUT ME<span>/ 關於我</span></h2>
+    <div class="about-grid">
+      <div class="about-text">
+        <p>嗨！我是 [你的名字/IP名稱]。</p>
+        <p>大學四年期間，我熱衷於將**視覺圖案設計**與**敘事影像**結合，從包裝結構設計、滿版圖騰轉化，到微電影腳本與數據分析，致力於打造兼具商業價值與個人風格的 IP 作品。</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>4+</h3>
+          <p>年創作累積</p>
+        </div>
+        <div class="stat-card">
+          <h3>10+</h3>
+          <p>核心專案作品</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 作品展示區 -->
+  <section id="portfolio" class="section">
+    <h2 class="section-title">PORTFOLIO<span>/ 作品展示</span></h2>
+    
+    <!-- 分類篩選按鈕 -->
+    <div class="filter-container">
+      <button class="filter-btn active" data-filter="all">全部作品</button>
+      <button class="filter-btn" data-filter="design">視覺與包裝設計</button>
+      <button class="filter-btn" data-filter="video">影音與腳本創作</button>
+      <button class="filter-btn" data-filter="research">專題與行為研究</button>
+    </div>
+
+    <!-- 作品列表 -->
+    <div class="portfolio-grid">
+      <!-- 作品卡片 1 -->
+      <div class="portfolio-card" data-category="design">
+        <div class="card-img">
+          <div class="placeholder-img">DESIGN PROJECT</div>
+        </div>
+        <div class="card-info">
+          <span class="tag">視覺 / 包裝設計</span>
+          <h3>IP 角色與包裝結構應用</h3>
+          <p>結合特定頭身比 IP 角色開發、刀模設計與圖騰圖案滿版視覺延伸。</p>
+        </div>
+      </div>
+
+      <!-- 作品卡片 2 -->
+      <div class="portfolio-card" data-category="video">
+        <div class="card-img">
+          <div class="placeholder-img">VIDEO PROJECT</div>
+        </div>
+        <div class="card-info">
+          <span class="tag">影音企劃</span>
+          <h3>偽紀錄片微電影《期末大作戰》</h3>
+          <p>負責劇本撰寫、分鏡圖繪製與後製剪輯，呈現校園幽默題材。</p>
+        </div>
+      </div>
+
+      <!-- 作品卡片 3 -->
+      <div class="portfolio-card" data-category="research">
+        <div class="card-img">
+          <div class="placeholder-img">RESEARCH PROJECT</div>
+        </div>
+        <div class="card-info">
+          <span class="tag">數據分析</span>
+          <h3>數位音訊消費行為研究</h3>
+          <p>針對不同年齡層對於串流平台訂閱定價接受度進行統計與簡報呈現。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 核心技能區 -->
+  <section id="skills" class="section">
+    <h2 class="section-title">SKILLS<span>/ 核心技能</span></h2>
+    <div class="skills-wrapper">
+      <div class="skill-tag">IP 角色設計</div>
+      <div class="skill-tag">包裝刀模與視覺延伸</div>
+      <div class="skill-tag">微電影企劃與編劇</div>
+      <div class="skill-tag">分鏡繪製 & 影片剪輯</div>
+      <div class="skill-tag">日語溝通與翻譯</div>
+      <div class="skill-tag">消費行為數據分析</div>
+    </div>
+  </section>
+
+  <!-- 聯絡區 -->
+  <section id="contact" class="section">
+    <div class="contact-box">
+      <h2>Let's Create Together!</h2>
+      <p>對我的作品感興趣或有合作意向？歡迎隨時與我聯繫。</p>
+      <a href="mailto:your-email@example.com" class="btn primary-btn">傳送 Email <i data-lucide="mail"></i></a>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 Your Name. Built with HTML/CSS/JS for GitHub Pages.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
