@@ -1,0 +1,163 @@
+U1214048
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 條件1: 檔名建議為 U1214048.HTML -->
+  <title>U1214048 - 圖片畫廊展示</title>
+  
+  <!-- 條件2: 內部 CSS 樣式區塊 (對應 U1214048.CSS 設計) -->
+  <style>
+    /* 全局風格設定 - 簡約風 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #f7f9fa;
+      color: #333333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    header {
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      color: #222222;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 0.9rem;
+      color: #777777;
+    }
+
+    /* 圖片滑動畫廊容器 (條件3 & 條件4) */
+    .gallery-container {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+      max-width: 1000px;
+      padding: 15px 5px;
+      overflow-x: auto; /* 允許水平滑動 */
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* 隱藏原生捲軸但保留滑動功能 (簡約外觀) */
+    .gallery-container::-webkit-scrollbar {
+      height: 6px;
+    }
+    .gallery-container::-webkit-scrollbar-track {
+      background: #eef1f4;
+      border-radius: 10px;
+    }
+    .gallery-container::-webkit-scrollbar-thumb {
+      background: #cccccc;
+      border-radius: 10px;
+    }
+    .gallery-container::-webkit-scrollbar-thumb:hover {
+      background: #aaaaaa;
+    }
+
+    /* 圖片卡片樣式與 Hover 效果 (條件5: 點擊開新頁) */
+    .gallery-item {
+      flex: 0 0 280px; /* 固定寬度，適合橫向滑動 */
+      height: 380px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      text-decoration: none; /* 移除連結下劃線 */
+      display: block;
+      position: relative;
+      background-color: #ffffff;
+    }
+
+    /* 條件4: 鼠標移過效果 (Hover 放大與陰影) */
+    .gallery-item:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.5s ease;
+    }
+
+    .gallery-item:hover img {
+      transform: scale(1.05); /* 滑過時圖片微微放大 */
+    }
+
+    /* 圖片下方的微光遮罩與標題 */
+    .caption {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 20px 15px;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-weight: 300;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>PHOTO GALLERY</h1>
+    <p>U1214048 簡約畫廊展示</p>
+  </header>
+
+  <!-- 條件3: 展示隨便五個圖片 -->
+  <main class="gallery-container">
+    
+    <!-- 條件5: target="_blank" 點擊圖片開啟新網頁 -->
+    <a href="https://unsplash.com/photos/mountain" target="_blank" class="gallery-item">
+      <img src="https://picsum.photos/id/1015/600/800" alt="自然風光 1">
+      <div class="caption">01. 壯麗山景</div>
+    </a>
+
+    <a href="https://unsplash.com/photos/lake" target="_blank" class="gallery-item">
+      <img src="https://picsum.photos/id/1018/600/800" alt="自然風光 2">
+      <div class="caption">02. 寂靜湖泊</div>
+    </a>
+
+    <a href="https://unsplash.com/photos/forest" target="_blank" class="gallery-item">
+      <img src="https://picsum.photos/id/1025/600/800" alt="動物展示">
+      <div class="caption">03. 森林萌寵</div>
+    </a>
+
+    <a href="https://unsplash.com/photos/architecture" target="_blank" class="gallery-item">
+      <img src="https://picsum.photos/id/1040/600/800" alt="建築風格">
+      <div class="caption">04. 現代建築</div>
+    </a>
+
+    <a href="https://unsplash.com/photos/sea" target="_blank" class="gallery-item">
+      <img src="https://picsum.photos/id/1050/600/800" alt="海洋景色">
+      <div class="caption">05. 蔚藍海岸</div>
+    </a>
+
+  </main>
+
+</body>
+</html>
