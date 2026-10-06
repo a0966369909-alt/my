@@ -1,0 +1,79 @@
+/* STREAMING_CHUNK:Configuring custom fonts and global styles... */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+:root {
+  --color-hakka-blue: #0284c7;
+  --color-orange-orange: #f97316;
+  --color-floral-pink: #ec4899;
+  --bg-dark: #0f172a;
+}
+
+body {
+  font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-dark);
+  color: #f8fafc;
+  overflow-x: hidden;
+}
+
+/* STREAMING_CHUNK:Styling navigation and glassmorphism elements... */
+.glass-nav {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(249, 115, 22, 0.4);
+  box-shadow: 0 12px 25px -5px rgba(249, 115, 22, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+}
+
+/* STREAMING_CHUNK:Adding neon gradients and sticker aesthetic animations... */
+.text-gradient {
+  background: linear-gradient(135deg, #f97316 0%, #ec4899 50%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-hakka-gradient {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(14, 165, 233, 0.15) 100%);
+}
+
+.sticker-border {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+  transition: transform 0.2s ease;
+}
+
+.sticker-border:hover {
+  transform: scale(1.03) rotate(-1deg);
+}
+
+/* STREAMING_CHUNK:Styling scrollbars and drawer overlays... */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f97316;
+}
+
+.cart-drawer-shadow {
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8);
+}
