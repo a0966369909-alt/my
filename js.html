@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>js.html - 炫砲加入購物車特效</title>
+</head>
+<body id="body" style="background-color: #111; color: #fff; font-family: sans-serif; text-align: center; margin-top: 50px; overflow-x: hidden;">
+
+    <h1 style="font-size: 36px; text-shadow: 0 0 10px #0ff;">🛍️ 超炫酷購物體驗</h1>
+
+    <!-- 購物車圖示與計數器 -->
+    <div id="cartIcon" style="font-size: 28px; margin: 30px; display: inline-block; background: #222; padding: 15px 30px; border-radius: 50px; border: 2px solid #0ff;">
+        🛒 購物車：<span id="cartCount" style="color: #0ff; font-weight: bold;">0</span> 件
+    </div>
+
+    <br>
+
+    <!-- 商品與按鈕區塊 -->
+    <div style="background: #222; display: inline-block; padding: 30px; border-radius: 20px; border: 2px solid #444; position: relative;">
+        <div style="font-size: 60px; margin-bottom: 15px;" id="productBox">👟</div>
+        <h3 style="margin: 10px 0;">極速炫風跑鞋</h3>
+        <p style="color: #888; font-size: 14px;">點擊下方按鈕體驗特效</p>
+        
+        <!-- 炫砲按鈕 -->
+        <button id="cartBtn" onclick="superAddToCart()" style="font-size: 18px; padding: 15px 35px; background-color: #ff007f; color: white; font-weight: bold; border: none; border-radius: 30px; cursor: pointer; outline: none;">
+            加入購物車 🚀
+        </button>
+    </div>
+
+    <script>
+        let count = 0;
+
+        function superAddToCart() {
+            let btn = document.getElementById("cartBtn");
+            let cartIcon = document.getElementById("cartIcon");
+            let cartCount = document.getElementById("cartCount");
+            let productBox = document.getElementById("productBox");
+
+            // 1. 按鈕點擊爆發變色與縮放特效
+            btn.innerText = "⚡ 發射中！";
+            btn.style.backgroundColor = "#0ff";
+            btn.style.color = "#000";
+            btn.style.transform = "scale(1.2)";
+
+            // 2. 建立一個飛向購物車的「商品分身」動畫
+            let flyingItem = document.createElement("div");
+            flyingItem.innerText = "👟";
+            flyingItem.style.position = "fixed";
+            flyingItem.style.fontSize = "40px";
+            let btnRect = btn.getBoundingClientRect();
+            flyingItem.style.left = btnRect.left + "px";
+            flyingItem.style.top = btnRect.top + "px";
+            flyingItem.style.zIndex = "999";
+            document.body.appendChild(flyingItem);
+
+            let targetRect = cartIcon.getBoundingClientRect();
+            let startX = btnRect.left;
+            let startY = btnRect.top;
+            let endX = targetRect.left + 50;
+            let endY = targetRect.top;
+            let progress = 0;
+
+            let flyInterval = setInterval(function() {
+                progress += 0.05;
+                if (progress >= 1) {
+                    clearInterval(flyInterval);
+                    document.body.removeChild(flyingItem);
+                    
+                    // 購物車圖示震動特效
+                    cartIcon.style.transform = "scale(1.3)";
+                    setTimeout(() => { cartIcon.style.transform = "scale(1)"; }, 200);
+                    
+                    // 更新數量
+                    count++;
+                    cartCount.innerText = count;
+                } else {
+                    let currentX = startX + (endX - startX) * progress;
+                    let currentY = startY + (endY - startY) * progress - Math.sin(progress * Math.PI) * 150; 
+                    flyingItem.style.left = currentX + "px";
+                    flyingItem.style.top = currentY + "px";
+                    flyingItem.style.transform = "scale(" + (1 - progress * 0.5) + ")";
+                }
+            }, 16);
+
+            // 3. 畫面背景瞬間閃爍炫彩光芒特效
+            let originalBg = document.body.style.backgroundColor;
+            document.body.style.backgroundColor = "#2b002b";
+            setTimeout(() => {
+                document.body.style.backgroundColor = originalBg;
+            }, 300);
+
+            // 4. 按鈕在 0.8 秒後恢復原狀
+            setTimeout(function() {
+                btn.innerText = "加入購物車 🚀";
+                btn.style.backgroundColor = "#ff007f";
+                btn.style.color = "white";
+                btn.style.transform = "scale(1)";
+            }, 800);
+        }
+    </script>
+</body>
+</html>
