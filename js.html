@@ -2,100 +2,186 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>js.html - 炫砲加入購物車特效</title>
+    <title>js.html - 我的迷你購物網站</title>
 </head>
-<body id="body" style="background-color: #111; color: #fff; font-family: sans-serif; text-align: center; margin-top: 50px; overflow-x: hidden;">
+<body style="background-color: #0f172a; color: #f8fafc; font-family: sans-serif; margin: 0; padding: 20px;">
 
-    <h1 style="font-size: 36px; text-shadow: 0 0 10px #0ff;">🛍️ 超炫酷購物體驗</h1>
-
-    <!-- 購物車圖示與計數器 -->
-    <div id="cartIcon" style="font-size: 28px; margin: 30px; display: inline-block; background: #222; padding: 15px 30px; border-radius: 50px; border: 2px solid #0ff;">
-        🛒 購物車：<span id="cartCount" style="color: #0ff; font-weight: bold;">0</span> 件
+    <!-- 頂部導覽列 -->
+    <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px 30px; border-radius: 12px; border: 1px solid #334155;">
+        <h1 style="margin: 0; font-size: 24px; color: #38bdf8;">🛍️ 質感選物小鋪</h1>
+        <div id="cartIcon" style="font-size: 18px; background: #0f172a; padding: 10px 20px; border-radius: 20px; border: 1px solid #38bdf8; cursor: pointer;" onclick="toggleCartModal()">
+            🛒 購物車：<span id="cartCount" style="color: #38bdf8; font-weight: bold;">0</span> 件
+        </div>
     </div>
 
-    <br>
-
-    <!-- 商品與按鈕區塊 -->
-    <div style="background: #222; display: inline-block; padding: 30px; border-radius: 20px; border: 2px solid #444; position: relative;">
-        <div style="font-size: 60px; margin-bottom: 15px;" id="productBox">👟</div>
-        <h3 style="margin: 10px 0;">極速炫風跑鞋</h3>
-        <p style="color: #888; font-size: 14px;">點擊下方按鈕體驗特效</p>
+    <!-- 商品列表區塊 -->
+    <div style="margin-top: 30px;">
+        <h2 style="border-bottom: 2px solid #334155; padding-bottom: 10px;">熱門商品</h2>
         
-        <!-- 炫砲按鈕 -->
-        <button id="cartBtn" onclick="superAddToCart()" style="font-size: 18px; padding: 15px 35px; background-color: #ff007f; color: white; font-weight: bold; border: none; border-radius: 30px; cursor: pointer; outline: none;">
-            加入購物車 🚀
-        </button>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            
+            <!-- 商品 1 -->
+            <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 220px; padding: 20px; text-align: center;">
+                <div style="font-size: 60px; margin-bottom: 10px;">👟</div>
+                <h3 style="margin: 10px 0;">極速炫風跑鞋</h3>
+                <p style="color: #94a3b8; font-size: 14px;">NT$ 2,500</p>
+                <button onclick="addToCart('極速炫風跑鞋', 2500, event)" style="background: #38bdf8; color: #0f172a; border: none; padding: 10px 20px; font-weight: bold; border-radius: 20px; cursor: pointer;">
+                    加入購物車 🚀
+                </button>
+            </div>
+
+            <!-- 商品 2 -->
+            <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 220px; padding: 20px; text-align: center;">
+                <div style="font-size: 60px; margin-bottom: 10px;">🎧</div>
+                <h3 style="margin: 10px 0;">降噪無線耳機</h3>
+                <p style="color: #94a3b8; font-size: 14px;">NT$ 3,800</p>
+                <button onclick="addToCart('降噪無線耳機', 3800, event)" style="background: #38bdf8; color: #0f172a; border: none; padding: 10px 20px; font-weight: bold; border-radius: 20px; cursor: pointer;">
+                    加入購物車 🚀
+                </button>
+            </div>
+
+            <!-- 商品 3 -->
+            <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 220px; padding: 20px; text-align: center;">
+                <div style="font-size: 60px; margin-bottom: 10px;">📷</div>
+                <h3 style="margin: 10px 0;">復古數位相機</h3>
+                <p style="color: #94a3b8; font-size: 14px;">NT$ 6,200</p>
+                <button onclick="addToCart('復古數位相機', 6200, event)" style="background: #38bdf8; color: #0f172a; border: none; padding: 10px 20px; font-weight: bold; border-radius: 20px; cursor: pointer;">
+                    加入購物車 🚀
+                </button>
+            </div>
+
+        </div>
     </div>
 
+    <!-- 購物車清單彈跳視窗 (預設隱藏) -->
+    <div id="cartModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
+        <div style="background: #1e293b; width: 400px; margin: 100px auto; padding: 30px; border-radius: 15px; border: 1px solid #38bdf8; position: relative;">
+            <h2 style="margin-top: 0; color: #38bdf8;">🛒 您的購物車</h2>
+            <div id="cartItemList" style="max-height: 250px; overflow-y: auto; margin-bottom: 20px; color: #cbd5e1;">
+                <p>購物車是空的～快去選購吧！</p>
+            </div>
+            <hr style="border-color: #334155;">
+            <p style="font-size: 18px; font-weight: bold; text-align: right;">總計：NT$ <span id="cartTotal">0</span></p>
+            
+            <div style="text-align: right; margin-top: 20px;">
+                <button onclick="checkout()" style="background: #22c55e; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-right: 10px;">去結帳</button>
+                <button onclick="toggleCartModal()" style="background: #64748b; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 8px; cursor: pointer;">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 互動邏輯 -->
     <script>
-        let count = 0;
+        let cart = [];
 
-        function superAddToCart() {
-            let btn = document.getElementById("cartBtn");
-            let cartIcon = document.getElementById("cartIcon");
-            let cartCount = document.getElementById("cartCount");
-            let productBox = document.getElementById("productBox");
+        // 加入購物車並觸發粒子與飛入特效
+        function addToCart(name, price, event) {
+            let btn = event.target;
+            
+            // 1. 資料加入陣列
+            cart.push({ name: name, price: price });
+            updateCartCount();
 
-            // 1. 按鈕點擊爆發變色與縮放特效
-            btn.innerText = "⚡ 發射中！";
-            btn.style.backgroundColor = "#0ff";
-            btn.style.color = "#000";
-            btn.style.transform = "scale(1.2)";
+            // 2. 按鈕點擊特效
+            let originalText = btn.innerText;
+            btn.innerText = "✨ 已加入！";
+            btn.style.backgroundColor = "#22c55e";
+            btn.style.color = "#ffffff";
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.backgroundColor = "#38bdf8";
+                btn.style.color = "#0f172a";
+            }, 800);
 
-            // 2. 建立一個飛向購物車的「商品分身」動畫
-            let flyingItem = document.createElement("div");
-            flyingItem.innerText = "👟";
-            flyingItem.style.position = "fixed";
-            flyingItem.style.fontSize = "40px";
-            let btnRect = btn.getBoundingClientRect();
-            flyingItem.style.left = btnRect.left + "px";
-            flyingItem.style.top = btnRect.top + "px";
-            flyingItem.style.zIndex = "999";
-            document.body.appendChild(flyingItem);
+            // 3. 粒子爆炸特效
+            let rect = btn.getBoundingClientRect();
+            for (let i = 0; i < 10; i++) {
+                createParticle(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            }
+        }
 
-            let targetRect = cartIcon.getBoundingClientRect();
-            let startX = btnRect.left;
-            let startY = btnRect.top;
-            let endX = targetRect.left + 50;
-            let endY = targetRect.top;
-            let progress = 0;
+        // 更新購物車數量與內容
+        function updateCartCount() {
+            let countSpan = document.getElementById("cartCount");
+            countSpan.innerText = cart.length;
 
-            let flyInterval = setInterval(function() {
-                progress += 0.05;
-                if (progress >= 1) {
-                    clearInterval(flyInterval);
-                    document.body.removeChild(flyingItem);
-                    
-                    // 購物車圖示震動特效
-                    cartIcon.style.transform = "scale(1.3)";
-                    setTimeout(() => { cartIcon.style.transform = "scale(1)"; }, 200);
-                    
-                    // 更新數量
-                    count++;
-                    cartCount.innerText = count;
-                } else {
-                    let currentX = startX + (endX - startX) * progress;
-                    let currentY = startY + (endY - startY) * progress - Math.sin(progress * Math.PI) * 150; 
-                    flyingItem.style.left = currentX + "px";
-                    flyingItem.style.top = currentY + "px";
-                    flyingItem.style.transform = "scale(" + (1 - progress * 0.5) + ")";
+            let itemList = document.getElementById("cartItemList");
+            let totalSpan = document.getElementById("cartTotal");
+
+            if (cart.length === 0) {
+                itemList.innerHTML = "<p>購物車是空的～快去選購吧！</p>";
+                totalSpan.innerText = "0";
+                return;
+            }
+
+            let html = "";
+            let total = 0;
+            for (let i = 0; i < cart.length; i++) {
+                html += `<div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed #334155; padding-bottom: 5px;">
+                    <span>${cart[i].name}</span>
+                    <span>NT$ ${cart[i].price}</span>
+                </div>`;
+                total += cart[i].price;
+            }
+            itemList.innerHTML = html;
+            totalSpan.innerText = total;
+        }
+
+        // 切換購物車視窗顯示/隱藏
+        function toggleCartModal() {
+            let modal = document.getElementById("cartModal");
+            if (modal.style.display === "none") {
+                modal.style.display = "block";
+            } else {
+                modal.style.display = "none";
+            }
+        }
+
+        // 結帳功能
+        function checkout() {
+            if (cart.length === 0) {
+                alert("購物車是空的，無法結帳！");
+                return;
+            }
+            alert("🎉 結帳成功！感謝您的購買。");
+            cart = [];
+            updateCartCount();
+            toggleCartModal();
+        }
+
+        // 粒子特效函式
+        function createParticle(x, y) {
+            let p = document.createElement("div");
+            p.style.position = "fixed";
+            p.style.width = "6px";
+            p.style.height = "6px";
+            p.style.background = "#38bdf8";
+            p.style.borderRadius = "50%";
+            p.style.boxShadow = "0 0 8px #38bdf8";
+            p.style.left = x + "px";
+            p.style.top = y + "px";
+            p.style.zIndex = "9999";
+            document.body.appendChild(p);
+
+            let angle = Math.random() * Math.PI * 2;
+            let speed = 4 + Math.random() * 6;
+            let dx = Math.cos(angle) * speed;
+            let dy = Math.sin(angle) * speed;
+            let opacity = 1;
+
+            let moveInterval = setInterval(function() {
+                let px = parseFloat(p.style.left);
+                let py = parseFloat(p.style.top);
+                p.style.left = px + dx + "px";
+                p.style.top = py + dy + "px";
+                opacity -= 0.05;
+                p.style.opacity = opacity;
+
+                if (opacity <= 0) {
+                    clearInterval(moveInterval);
+                    document.body.removeChild(p);
                 }
             }, 16);
-
-            // 3. 畫面背景瞬間閃爍炫彩光芒特效
-            let originalBg = document.body.style.backgroundColor;
-            document.body.style.backgroundColor = "#2b002b";
-            setTimeout(() => {
-                document.body.style.backgroundColor = originalBg;
-            }, 300);
-
-            // 4. 按鈕在 0.8 秒後恢復原狀
-            setTimeout(function() {
-                btn.innerText = "加入購物車 🚀";
-                btn.style.backgroundColor = "#ff007f";
-                btn.style.color = "white";
-                btn.style.transform = "scale(1)";
-            }, 800);
         }
     </script>
 </body>
