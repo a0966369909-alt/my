@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OLD MOUNTAIN LINE 舊山線鐵道文化漫遊館</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Fonts: Noto Sans TC 與 Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- 引入 Three.js 與 OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- 引入 Tone.js 用於合成蒸汽火車汽笛與環境音效 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 3D 畫布容器 */
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            transition: background 1.2s ease;
+        }
+
+        /* 日間山嵐背景漸層 */
+        .theme-day {
+            background: radial-gradient(circle at 35% 40%, #e0f2fe 0%, #bae6fd 45%, #7dd3fc 100%);
+        }
+
+        /* 黃昏夕照背景漸層 */
+        .theme-sunset {
+            background: radial-gradient(circle at 35% 35%, #fed7aa 0%, #fdba74 35%, #c2410c 75%, #431407 100%);
+        }
+
+        /* 3D 空間懸浮標記點 (Hotspot Pin) */
+        .hotspot-pin {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            z-index: 10;
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+        }
+
+        .hotspot-pin:hover, .hotspot-pin.active {
+            transform: translate(-50%, -115%) scale(1.12);
+            z-index: 20;
+        }
+
+        .pin-pulse {
+            animation: pulseRing 2s infinite;
+        }
+
+        @keyframes pulseRing {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            70% { transform: scale(1.45); opacity: 0; }
+            100% { transform: scale(1.45); opacity: 0; }
+        }
+
+        /* 自訂捲軸樣式 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(120, 113, 108, 0.25);
+            border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(120, 113, 108, 0.45);
+        }
+
+        /* 手機版底部抽屜平滑過渡 */
+        #info-panel {
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+    </style>
+</head>
+<body class="theme-day text-stone-800">
+
+    <!-- 3D 渲染畫布 -->
+    <div id="canvas-container" class="theme-day"></div>
+
+    <!-- 3D 空間 HTML 懸浮地標標籤層 -->
+    <div id="hotspots-layer" class="fixed inset-0 pointer-events-none z-10"></div>
+
+    <!-- 左上角品牌標題區 (參考 puma.taipei/heart-island 雜誌感排版) -->
+    <header class="fixed top-4 left-4 sm:top-7 sm:left-8 z-20 pointer-events-none max-w-[75%] sm:max-w-md">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 backdrop-blur-md border border-stone-200/80 shadow-sm mb-2">
+            <span class="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span>
+            <span class="text-[11px] sm:text-xs font-bold tracking-widest uppercase text-stone-600">OLD MOUNTAIN LINE · 3D ISLAND</span>
+        </div>
+        <h1 class="text-2xl sm:text-4xl font-black tracking-tight text-stone-900 drop-shadow-sm leading-tight">
+            舊山線鐵道文化<br class="sm:hidden">漫遊館
+        </h1>
+        <p class="mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-stone-700/90 bg-white/60 backdrop-blur-sm inline-block px-2.5 py-1 rounded-lg">
+            把百年鐵道記憶與山林時光，連起來。
+        </p>
+    </header>
+
+    <!-- 左下角互動環境控制列 (日夜切換 / 火車控制 / 重設視角) -->
+    <div class="fixed bottom-[44vh] sm:bottom-7 left-4 sm:left-8 z-20 flex flex-wrap items-center gap-2">
+        <!-- 日夜光影模式切換 -->
+        <button id="btn-theme" onclick="toggleLightingMode()" 
+            class="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white/90 hover:bg-white active:scale-95 backdrop-blur-md shadow-lg border border-stone-200/80 text-xs sm:text-sm font-bold text-stone-800 transition-all cursor-pointer">
+            <span id="theme-icon" class="text-base">🌤️</span>
+            <span id="theme-label">日間山嵐</span>
+        </button>
+
+        <!-- 蒸汽火車啟停與鳴笛 -->
+        <button id="btn-train" onclick="toggleTrainMotion()" 
+            class="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-stone-900 hover:bg-stone-800 active:scale-95 shadow-lg text-xs sm:text-sm font-bold text-white transition-all cursor-pointer">
+            <span id="train-icon">🚂</span>
+            <span id="train-label">行駛中</span>
+        </button>
+
+        <!-- 鳴笛音效按鈕 -->
+        <button onclick="playTrainWhistle()" title="鳴放蒸汽汽笛"
+            class="flex items-center justify-center p-2.5 rounded-2xl bg-amber-600 hover:bg-amber-500 active:scale-95 shadow-lg text-white transition-all cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+        </button>
+
+        <!-- 重設鳥瞰視角 -->
+        <button onclick="resetCameraView()" title="回到全島鳥瞰視角"
+            class="flex items-center justify-center p-2.5 rounded-2xl bg-white/90 hover:bg-white active:scale-95 backdrop-blur-md shadow-lg border border-stone-200/80 text-stone-700 transition-all cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- 右側(PC版) / 底部抽屜(手機版) 文化導覽面板 -->
+    <aside id="info-panel" 
+        class="fixed bottom-0 left-0 right-0 h-[42vh] sm:h-auto sm:top-6 sm:bottom-6 sm:left-auto sm:right-6 sm:w-[390px] lg:w-[420px] z-30 bg-[#FAF8F5]/95 backdrop-blur-xl rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-200/90 flex flex-col overflow-hidden">
+        
+        <!-- 手機版抽屜拖曳/展開把手 -->
+        <div id="drawer-handle" onclick="toggleMobileDrawer()" class="sm:hidden w-full pt-2.5 pb-1 flex flex-col items-center justify-center cursor-pointer shrink-0">
+            <div class="w-10 h-1.5 rounded-full bg-stone-300"></div>
+            <span id="drawer-hint" class="text-[10px] text-stone-400 mt-1 font-medium">點擊展開 / 收合導覽面板</span>
+        </div>
+
+        <!-- 面板頂部標籤與簡介 -->
+        <div class="px-5 pt-2 sm:pt-6 pb-4 border-b border-stone-200/80 shrink-0">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-extrabold tracking-widest text-amber-700 uppercase">THE HERITAGE INDEX</span>
+                <span class="text-[11px] font-medium text-stone-500 bg-stone-200/70 px-2 py-0.5 rounded-md">4 處文化地標</span>
+            </div>
+            <h2 class="text-lg sm:text-xl font-black text-stone-900 mt-1">探索舊山線聚落風景</h2>
+            <p class="text-xs text-stone-600 mt-1 leading-relaxed">
+                拖曳旋轉 3D 島嶼、滾輪或雙指縮放。點擊島上標記或下方地標索引，深入閱讀百年鐵道工藝與山城故事。
+            </p>
+        </div>
+
+        <!-- 可捲動內容區：包含地標列表與選中地標的詳細故事卡片 -->
+        <div id="panel-scroll-area" class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 space-y-4">
+            
+            <!-- 詳細故事卡片 (當點擊某個地標時顯示或高亮更新) -->
+            <div id="detail-card" class="hidden bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-amber-200/80 transition-all">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <span id="detail-badge" class="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 mb-1.5">01 地標導覽</span>
+                        <h3 id="detail-title" class="text-lg font-black text-stone-900">勝興木造老車站</h3>
+                    </div>
+                    <button onclick="closeDetailCard()" class="p-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-500 transition-colors" title="返回總覽">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <p id="detail-subtitle" class="text-xs font-bold text-amber-700 mt-0.5">台灣西部縱貫鐵路最高點 · 海拔 402.326 公尺</p>
+                <p id="detail-desc" class="text-xs sm:text-sm text-stone-600 mt-3 leading-relaxed">
+                    建於西元 1907 年，整棟建築以台灣檜木打造，完全不使用一根鐵釘，採用傳統木工榫接技法，歷經百年地震仍屹立不搖。
+                </p>
+                <div id="detail-tags" class="flex flex-wrap gap-1.5 mt-3.5 pt-3 border-t border-stone-100">
+                    <!-- 動態標籤 -->
+                </div>
+            </div>
+
+            <!-- 地標索引清單 (參考 puma.taipei/heart-island 編號列表設計) -->
+            <div class="space-y-2.5" id="landmark-list">
+                <!-- 由 JavaScript 動態渲染 4 個地標項目 -->
+            </div>
+
+            <!-- 底部操作提示 -->
+            <div class="pt-2 pb-4 text-center">
+                <p class="text-[11px] text-stone-400">
+                    互動提示：可點擊上方「日夜切換」感受山城夕照氛圍
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 系統訊息提示 Toast (取代 alert) -->
+    <div id="toast-msg" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-opacity duration-300 bg-stone-900/90 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-xl backdrop-blur-md">
+        提示訊息
+    </div>
+
+    <script>
+        /**
+         * 舊山線鐵道文化聚落資料定義
+         */
+        const LANDMARKS = [
+            {
+                id: 'station',
+                num: '01',
+                title: '勝興木造老車站',
+                subtitle: '西部縱貫鐵路最高點 · 檜木榫接工藝',
+                shortDesc: '無釘榫接的日式木造站房，見證山城林業與客庄歲月。',
+                fullDesc: '勝興車站建於西元 1907 年（明治 40 年），標高達 402.326 公尺，是台灣西部縱貫鐵路的最高點。站體以珍貴台灣檜木構築，全棟樑柱交接處皆以精密的傳統「榫接工法」固定，不使用一根鐵釘；屋簷下的八卦與矛頭木雕裝飾，更蘊含著早期山城居民祈求平安避邪的文化智慧。',
+                tags: ['百年木造建築', '榫接工藝', '海拔402公尺', '客庄聚落'],
+                color: '#d97706',
+                // 3D 空間座標與聚焦鏡頭位置
+                pinPos: new THREE.Vector3(-4.2, 3.6, -2.5),
+                camPos: new THREE.Vector3(-9.5, 7.5, 5.5),
+                targetPos: new THREE.Vector3(-4.0, 1.8, -2.2)
+            },
+            {
+                id: 'bridge',
+                num: '02',
+                title: '紅磚龍騰古拱橋',
+                subtitle: '台灣鐵道藝術極品 · 糯米紅磚拱圈',
+                shortDesc: '跨越景山溪谷的紅磚拱橋遺構，展現精湛磚雕力學。',
+                fullDesc: '龍騰斷橋原名「魚藤坪斷橋」，建於 1906 年，橋墩以紅磚與花崗石砌成，磚塊之間以糯米、紅糖與石灰調合而成的傳統灰漿黏結，結構極為堅固。1935 年關刀山大地震後雖留下斷垣殘壁，但其優美的半圓形磚拱幾何比例與斑駁紅磚肌理，已成為舊山線最具代表性的歷史地標。',
+                tags: ['紅磚拱橋', '糯米灰漿', '歷史遺構', '山谷地標'],
+                color: '#dc2626',
+                pinPos: new THREE.Vector3(4.5, 4.2, 2.2),
+                camPos: new THREE.Vector3(11.0, 7.8, 8.5),
+                targetPos: new THREE.Vector3(4.2, 2.0, 2.0)
+            },
+            {
+                id: 'train',
+                num: '03',
+                title: '蒸汽火車與鐵道時光',
+                subtitle: 'CK124 蒸汽機車頭 · 盤山越嶺的記憶',
+                shortDesc: '冒著白煙穿梭於山林與隧道間的黑色鋼鐵巨獸。',
+                fullDesc: '舊山線以坡度陡峭、彎道多且隧道群密集著稱（最大坡度達千分之 25）。昔日蒸汽火車行駛於此，必須全力燃煤加壓，黑煙與白色蒸氣在翠綠山谷間繚繞，汽笛聲迴盪在三義與后里山林之間，承載了無數旅人、農產與木材的運輸記憶。',
+                tags: ['蒸汽機車', '動態行駛', '三義至后里', '鐵道聲景'],
+                color: '#1e293b',
+                pinPos: new THREE.Vector3(0.2, 2.8, 4.8),
+                camPos: new THREE.Vector3(0.5, 8.0, 13.5),
+                targetPos: new THREE.Vector3(0.0, 1.5, 1.5)
+            },
+            {
+                id: 'garden',
+                num: '04',
+                title: '山林禪意茶亭與聚落',
+                subtitle: '石燈籠、枯山水與東方茶香空間',
+                shortDesc: '融合日系庭園與客家山林美學的靜謐休憩茶屋。',
+                fullDesc: '沿著老車站旁的石階漫步，映入眼簾的是以苔蘚、白砂、石燈籠與老松構築的禪意庭園聚落。旅人可在此品嚐台三線在地的東方美人茶與酸柑茶，聆聽風吹過竹林與樹梢的沙沙聲，體驗放慢腳步的慢城生活美學。',
+                tags: ['石燈籠', '日系庭園', '台三線茶香', '慢城美學'],
+                color: '#059669',
+                pinPos: new THREE.Vector3(3.2, 3.0, -4.2),
+                camPos: new THREE.Vector3(8.5, 7.2, -10.0),
+                targetPos: new THREE.Vector3(3.0, 1.5, -4.0)
+            }
+        ];
+
+        // 全域 Three.js 變數
+        let scene, camera, renderer, controls;
+        let islandGroup, trainGroup, smokeParticles = [];
+        let ambientLight, sunLight, hemiLight, lanternLights = [];
+        let isSunset = false;
+        let isTrainMoving = true;
+        let trainProgress = 0.15;
+        let railCurve;
+        let activeLandmarkId = null;
+        let isMobileDrawerExpanded = false;
+
+        // 鏡頭平滑飛行目標
+        const defaultCamPos = new THREE.Vector3(12.5, 10.5, 14.5);
+        const defaultTargetPos = new THREE.Vector3(0, 1.0, 0);
+        let desiredCamPos = defaultCamPos.clone();
+        let desiredTargetPos = defaultTargetPos.clone();
+        let isCameraAnimating = false;
+
+        // 互動射線檢測
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+        const clickableMeshes = [];
+
+        /**
+         * 初始化頁面與 3D 場景
+         */
+        window.onload = function () {
+            renderLandmarkList();
+            initThreeScene();
+            createFloatingIsland();
+            createRailwayAndTrain();
+            createStationBuilding();
+            createBrickArchBridge();
+            createZenGardenAndTrees();
+            createHotspotElements();
+            setupInteractions();
+            animate();
+        };
+
+        /**
+         * 1. 初始化 Three.js 場景、相機、燈光與控制器
+         */
+        function initThreeScene() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            // 加入淡雅的遠景霧氣增加空間景深
+            scene.fog = new THREE.FogExp2(0xdbeafe, 0.016);
+
+            camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 150);
+            camera.position.copy(defaultCamPos);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.08;
+            container.appendChild(renderer.domElement);
+
+            // OrbitControls 支援滑鼠與觸控雙指縮放旋轉
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.06;
+            controls.maxPolarAngle = Math.PI / 2 - 0.06; // 防止視角鑽入島嶼底部太多
+            controls.minDistance = 6;
+            controls.maxDistance = 30;
+            controls.target.copy(defaultTargetPos);
+
+            // 若使用者手動拖曳，取消自動鏡頭過渡
+            controls.addEventListener('start', () => {
+                isCameraAnimating = false;
+            });
+
+            // 燈光配置
+            hemiLight = new THREE.HemisphereLight(0xffffff, 0x4d7c0f, 0.75);
+            hemiLight.position.set(0, 20, 0);
+            scene.add(hemiLight);
+
+            ambientLight = new THREE.AmbientLight(0xfef3c7, 0.35);
+            scene.add(ambientLight);
+
+            sunLight = new THREE.DirectionalLight(0xfffbeb, 1.35);
+            sunLight.position.set(14, 22, 12);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 2;
+            sunLight.shadow.camera.far = 55;
+            const d = 14;
+            sunLight.shadow.camera.left = -d;
+            sunLight.shadow.camera.right = d;
+            sunLight.shadow.camera.top = d;
+            sunLight.shadow.camera.bottom = -d;
+            sunLight.shadow.bias = -0.0005;
+            scene.add(sunLight);
+
+            islandGroup = new THREE.Group();
+            scene.add(islandGroup);
+        }
+
+        /**
+         * 2. 建立懸浮低面數（Low-poly）山林島嶼基座與溪谷
+         */
+        function createFloatingIsland() {
+            // 島嶼底部倒錐形岩層 (Low-poly 切面效果)
+            const rockGeo = new THREE.ConeGeometry(9.6, 7.2, 14, 3);
+            // 隨機擾動頂點產生自然岩石稜角
+            const posAttr = rockGeo.attributes.position;
+            for (let i = 0; i < posAttr.count; i++) {
+                const y = posAttr.getY(i);
+                if (y < 3.4 && y > -3.4) {
+                    posAttr.setX(i, posAttr.getX(i) + (Math.random() - 0.5) * 0.9);
+                    posAttr.setZ(i, posAttr.getZ(i) + (Math.random() - 0.5) * 0.9);
+                }
+            }
+            rockGeo.computeVertexNormals();
+
+            const rockMat = new THREE.MeshStandardMaterial({
+                color: 0x78716c,
+                roughness: 0.9,
+                flatShading: true
+            });
+            const rockMesh = new THREE.Mesh(rockGeo, rockMat);
+            rockMesh.rotation.x = Math.PI; // 尖端朝下
+            rockMesh.position.y = -3.6;
+            rockMesh.receiveShadow = true;
+            islandGroup.add(rockMesh);
+
+            // 島嶼表層翠綠草地平台
+            const grassGeo = new THREE.CylinderGeometry(9.6, 9.4, 0.7, 14);
+            const grassMat = new THREE.MeshStandardMaterial({
+                color: 0x65a30d,
+                roughness: 0.85,
+                flatShading: true
+            });
+            const grassMesh = new THREE.Mesh(grassGeo, grassMat);
+            grassMesh.position.y = 0.25;
+            grassMesh.receiveShadow = true;
+            islandGroup.add(grassMesh);
+
+            // 後方起伏的翠綠山丘 (舊山線山巒意象)
+            const hillConfigs = [
+                { x: -3.5, z: -5.2, r: 3.6, h: 3.2, color: 0x4d7c0f },
+                { x: 0.5, z: -5.8, r: 4.2, h: 3.8, color: 0x3f6212 },
+                { x: 4.8, z: -4.8, r: 3.2, h: 2.6, color: 0x4d7c0f },
+                { x: -6.2, z: -1.8, r: 2.8, h: 2.2, color: 0x65a30d }
+            ];
+            hillConfigs.forEach(cfg => {
+                const hGeo = new THREE.ConeGeometry(cfg.r, cfg.h, 7);
+                const hMat = new THREE.MeshStandardMaterial({
+                    color: cfg.color,
+                    roughness: 0.9,
+                    flatShading: true
+                });
+                const hMesh = new THREE.Mesh(hGeo, hMat);
+                hMesh.position.set(cfg.x, 0.5 + cfg.h / 2 - 0.2, cfg.z);
+                hMesh.castShadow = true;
+                hMesh.receiveShadow = true;
+                islandGroup.add(hMesh);
+            });
+
+            // 景山溪藍綠色溪流切面 (穿過龍騰斷橋下方)
+            const riverGeo = new THREE.BoxGeometry(2.6, 0.25, 11.5);
+            const riverMat = new THREE.MeshStandardMaterial({
+                color: 0x0ea5e9,
+                roughness: 0.2,
+                metalness: 0.1,
+                flatShading: true
+            });
+            const riverMesh = new THREE.Mesh(riverGeo, riverMat);
+            riverMesh.position.set(4.3, 0.55, 1.8);
+            riverMesh.rotation.y = -0.35;
+            riverMesh.receiveShadow = true;
+            islandGroup.add(riverMesh);
+
+            // 周圍漂浮的小雲朵裝飾
+            const cloudMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.9,
+                flatShading: true
+            });
+            const cloudPositions = [
+                [-9.5, 4.5, -5.0, 1.0],
+                [10.2, 5.2, -3.5, 0.85],
+                [-7.5, -2.5, 7.5, 0.75]
+            ];
+            cloudPositions.forEach(([cx, cy, cz, scale]) => {
+                const cGroup = new THREE.Group();
+                const geo1 = new THREE.DodecahedronGeometry(0.9 * scale, 0);
+                const geo2 = new THREE.DodecahedronGeometry(0.65 * scale, 0);
+                const m1 = new THREE.Mesh(geo1, cloudMat);
+                const m2 = new THREE.Mesh(geo2, cloudMat);
+                m2.position.set(0.8 * scale, -0.15 * scale, 0.2 * scale);
+                cGroup.add(m1, m2);
+                cGroup.position.set(cx, cy, cz);
+                islandGroup.add(cGroup);
+            });
+        }
+
+        /**
+         * 3. 建立環島舊山線鐵道與動態行駛的 CK124 蒸汽火車
+         */
+        function createRailwayAndTrain() {
+            // 定義封閉平滑曲線作為環山鐵道路線 (經過車站前方與斷橋旁)
+            const points = [
+                new THREE.Vector3(-5.8, 0.72, 0.5),
+                new THREE.Vector3(-3.2, 0.72, 0.2), // 勝興車站月台前
+                new THREE.Vector3(0.5, 0.72, 2.5),
+                new THREE.Vector3(3.8, 0.72, 4.8),
+                new THREE.Vector3(6.8, 0.72, 2.2),
+                new THREE.Vector3(6.2, 0.72, -1.8),
+                new THREE.Vector3(1.5, 0.72, -3.2),
+                new THREE.Vector3(-4.5, 0.72, -3.8),
+                new THREE.Vector3(-6.8, 0.72, -1.5)
+            ];
+            railCurve = new THREE.CatmullRomCurve3(points, true);
+
+            // 鋪設枕木與雙軌
+            const sleeperCount = 95;
+            const sleeperGeo = new THREE.BoxGeometry(0.95, 0.08, 0.22);
+            const sleeperMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.9 });
+            const railNodeGeo = new THREE.BoxGeometry(0.08, 0.1, 0.55);
+            const railMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.7, roughness: 0.3 });
+
+            for (let i = 0; i < sleeperCount; i++) {
+                const t = i / sleeperCount;
+                const pt = railCurve.getPointAt(t);
+                const tangent = railCurve.getTangentAt(t);
+                const angle = Math.atan2(tangent.x, tangent.z);
+
+                // 枕木
+                const sleeper = new THREE.Mesh(sleeperGeo, sleeperMat);
+                sleeper.position.copy(pt);
+                sleeper.rotation.y = angle;
+                sleeper.receiveShadow = true;
+                islandGroup.add(sleeper);
+
+                // 左右鋼軌節點
+                [-0.28, 0.28].forEach(offset => {
+                    const railSeg = new THREE.Mesh(railNodeGeo, railMat);
+                    railSeg.position.copy(pt);
+                    railSeg.position.x += Math.cos(angle) * offset;
+                    railSeg.position.z -= Math.sin(angle) * offset;
+                    railSeg.position.y += 0.06;
+                    railSeg.rotation.y = angle;
+                    islandGroup.add(railSeg);
+                });
+            }
+
+            // 建立 Low-poly 蒸汽火車頭 (CK124 意象)
+            trainGroup = new THREE.Group();
+            trainGroup.userData = { landmarkId: 'train' };
+
+            const blackMetal = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.5, flatShading: true });
+            const redTrim = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.5, flatShading: true });
+            const goldBrass = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.7, roughness: 0.2 });
+
+            // 車身底盤
+            const chassis = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.22, 1.85), redTrim);
+            chassis.position.y = 0.24;
+            chassis.castShadow = true;
+            trainGroup.add(chassis);
+
+            // 圓柱形蒸汽鍋爐
+            const boiler = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.15, 10), blackMetal);
+            boiler.rotation.x = Math.PI / 2;
+            boiler.position.set(0, 0.56, 0.25);
+            boiler.castShadow = true;
+            trainGroup.add(boiler);
+
+            // 駕駛室
+            const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.68, 0.65), blackMetal);
+            cabin.position.set(0, 0.66, -0.55);
+            cabin.castShadow = true;
+            trainGroup.add(cabin);
+
+            // 駕駛室屋頂
+            const cabRoof = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.08, 0.75), redTrim);
+            cabRoof.position.set(0, 1.02, -0.55);
+            trainGroup.add(cabRoof);
+
+            // 煙囪與金色頭燈
+            const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.08, 0.32, 8), blackMetal);
+            chimney.position.set(0, 0.95, 0.62);
+            trainGroup.add(chimney);
+
+            const headlight = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.1, 8), goldBrass);
+            headlight.rotation.x = Math.PI / 2;
+            headlight.position.set(0, 0.72, 0.85);
+            trainGroup.add(headlight);
+
+            // 動輪 (左右各 3 顆紅色車輪)
+            const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.08, 10);
+            [-0.45, 0, 0.45].forEach(wz => {
+                [-0.38, 0.38].forEach(wx => {
+                    const wheel = new THREE.Mesh(wheelGeo, redTrim);
+                    wheel.rotation.z = Math.PI / 2;
+                    wheel.position.set(wx, 0.18, wz);
+                    trainGroup.add(wheel);
+                });
+            });
+
+            // 註冊可點擊互動
+            trainGroup.traverse(child => {
+                if (child.isMesh) {
+                    child.userData.landmarkId = 'train';
+                    clickableMeshes.push(child);
+                }
+            });
+
+            islandGroup.add(trainGroup);
+        }
+
+        /**
+         * 4. 建立地標 01：勝興木造老車站與月台
+         */
+        function createStationBuilding() {
+            const stationGroup = new THREE.Group();
+            stationGroup.position.set(-4.2, 0.6, -2.2);
+            stationGroup.rotation.y = 0.25;
+
+            const woodWallMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.85, flatShading: true });
+            const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9, flatShading: true });
+            const roofTileMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.7, flatShading: true });
+            const stoneBaseMat = new THREE.MeshStandardMaterial({ color: 0xa8a29e, roughness: 0.9 });
+
+            // 車站石砌月台基座
+            const platform = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.35, 2.4), stoneBaseMat);
+            platform.position.y = 0.175;
+            platform.receiveShadow = true;
+            platform.castShadow = true;
+            stationGroup.add(platform);
+
+            // 檜木主體建築
+            const body = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.35, 1.65), woodWallMat);
+            body.position.set(0, 1.0, -0.1);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            stationGroup.add(body);
+
+            // 日式切妻造斜屋頂
+            const roofGeo = new THREE.ConeGeometry(2.35, 1.05, 4);
+            const roof = new THREE.Mesh(roofGeo, roofTileMat);
+            roof.position.set(0, 2.15, -0.1);
+            roof.rotation.y = Math.PI / 4;
+            roof.scale.set(1.15, 0.85, 0.82);
+            roof.castShadow = true;
+            stationGroup.add(roof);
+
+            // 月台遮雨棚與木柱
+            const canopy = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.1, 0.85), darkWoodMat);
+            canopy.position.set(0, 1.48, 0.95);
+            canopy.rotation.x = 0.15;
+            canopy.castShadow = true;
+            stationGroup.add(canopy);
+
+            [-1.3, 0, 1.3].forEach(px => {
+                const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.15, 0.1), darkWoodMat);
+                pillar.position.set(px, 0.9, 1.15);
+                stationGroup.add(pillar);
+            });
+
+            // 「勝興」懷舊站牌柱
+            const signPost = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.1, 0.08), darkWoodMat);
+            signPost.position.set(1.55, 0.85, 0.9);
+            const signBoard = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.32, 0.06), new THREE.MeshStandardMaterial({ color: 0xfef3c7 }));
+            signBoard.position.set(1.55, 1.25, 0.9);
+            stationGroup.add(signPost, signBoard);
+
+            stationGroup.traverse(child => {
+                if (child.isMesh) {
+                    child.userData.landmarkId = 'station';
+                    clickableMeshes.push(child);
+                }
+            });
+
+            islandGroup.add(stationGroup);
+        }
+
+        /**
+         * 5. 建立地標 02：紅磚龍騰古拱橋 (多座紅磚拱墩遺構)
+         */
+        function createBrickArchBridge() {
+            const bridgeGroup = new THREE.Group();
+            bridgeGroup.position.set(4.4, 0.6, 2.0);
+            bridgeGroup.rotation.y = -0.35;
+
+            const brickMat = new THREE.MeshStandardMaterial({
+                color: 0xb91c1c,
+                roughness: 0.88,
+                flatShading: true
+            });
+            const graniteMat = new THREE.MeshStandardMaterial({
+                color: 0x78716c,
+                roughness: 0.9,
+                flatShading: true
+            });
+
+            // 建立三座具代表性的紅磚斷橋橋墩與半圓拱圈結構
+            const pierPositions = [-1.6, 0, 1.6];
+            pierPositions.forEach((pz, idx) => {
+                const pierGroup = new THREE.Group();
+                pierGroup.position.z = pz;
+
+                // 花崗石底座
+                const base = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.45, 0.75), graniteMat);
+                base.position.y = 0.225;
+                base.castShadow = true;
+                pierGroup.add(base);
+
+                // 紅磚梯形橋墩主體 (中間座最高，兩側呈斷橋參差高度)
+                const height = idx === 1 ? 2.45 : (idx === 0 ? 2.15 : 1.85);
+                const pier = new THREE.Mesh(new THREE.BoxGeometry(0.92, height, 0.62), brickMat);
+                pier.position.y = 0.45 + height / 2;
+                pier.castShadow = true;
+                pier.receiveShadow = true;
+                pierGroup.add(pier);
+
+                // 橋墩頂部花崗石飾帶
+                const cap = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.14, 0.7), graniteMat);
+                cap.position.y = 0.45 + height;
+                pierGroup.add(cap);
+
+                bridgeGroup.add(pierGroup);
+            });
+
+            // 連接第一與第二座橋墩的半圓紅磚拱橋
+            const archRadius = 0.8;
+            const archSegments = 10;
+            for (let i = 0; i <= archSegments; i++) {
+                const theta = (i / archSegments) * Math.PI;
+                const az = -0.8 - Math.cos(theta) * archRadius;
+                const ay = 2.3 + Math.sin(theta) * archRadius;
+                const brickBlock = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.26, 0.28), brickMat);
+                brickBlock.position.set(0, ay, az);
+                brickBlock.rotation.x = theta - Math.PI / 2;
+                brickBlock.castShadow = true;
+                bridgeGroup.add(brickBlock);
+            }
+
+            bridgeGroup.traverse(child => {
+                if (child.isMesh) {
+                    child.userData.landmarkId = 'bridge';
+                    clickableMeshes.push(child);
+                }
+            });
+
+            islandGroup.add(bridgeGroup);
+        }
+
+        /**
+         * 6. 建立地標 04：山林禪意茶亭、石燈籠與低面數樹林
+         */
+        function createZenGardenAndTrees() {
+            const gardenGroup = new THREE.Group();
+            gardenGroup.position.set(3.0, 0.6, -4.0);
+
+            // 日式白砂枯山水圓庭
+            const sandGeo = new THREE.CylinderGeometry(1.65, 1.7, 0.08, 16);
+            const sandMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f4, roughness: 0.95 });
+            const sandMesh = new THREE.Mesh(sandGeo, sandMat);
+            sandMesh.position.y = 0.04;
+            sandMesh.receiveShadow = true;
+            gardenGroup.add(sandMesh);
+
+            // 禪意茶亭 (木造涼亭)
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.85 });
+            const thatchRoofMat = new THREE.MeshStandardMaterial({ color: 0x3f6212, roughness: 0.9, flatShading: true });
+
+            const deck = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.16, 1.6), woodMat);
+            deck.position.y = 0.12;
+            deck.castShadow = true;
+            gardenGroup.add(deck);
+
+            [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]].forEach(([px, pz]) => {
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.2, 6), woodMat);
+                post.position.set(px, 0.75, pz);
+                post.castShadow = true;
+                gardenGroup.add(post);
+            });
+
+            const pavilionRoof = new THREE.Mesh(new THREE.ConeGeometry(1.45, 0.85, 4), thatchRoofMat);
+            pavilionRoof.position.y = 1.72;
+            pavilionRoof.rotation.y = Math.PI / 4;
+            pavilionRoof.castShadow = true;
+            gardenGroup.add(pavilionRoof);
+
+            // 日式石燈籠 (內含點光源，黃昏模式下會亮起暖黃燈火)
+            const lanternPositions = [
+                new THREE.Vector3(-1.35, 0.08, 0.95),
+                new THREE.Vector3(1.45, 0.08, 0.85)
+            ];
+            const stoneMat = new THREE.MeshStandardMaterial({ color: 0xd6d3d1, roughness: 0.9, flatShading: true });
+            const glowMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+
+            lanternPositions.forEach(lPos => {
+                const lGroup = new THREE.Group();
+                lGroup.position.copy(lPos);
+
+                const lBase = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, 0.25, 6), stoneMat);
+                lBase.position.y = 0.125;
+                const lShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.45, 6), stoneMat);
+                lShaft.position.y = 0.45;
+                const lBox = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.24), glowMat);
+                lBox.position.y = 0.78;
+                const lRoof = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.22, 6), stoneMat);
+                lRoof.position.y = 0.98;
+
+                // 暖光點光源
+                const ptLight = new THREE.PointLight(0xf59e0b, 0.3, 4.5);
+                ptLight.position.set(0, 0.8, 0);
+                lanternLights.push(ptLight);
+
+                lGroup.add(lBase, lShaft, lBox, lRoof, ptLight);
+                gardenGroup.add(lGroup);
+            });
+
+            gardenGroup.traverse(child => {
+                if (child.isMesh) {
+                    child.userData.landmarkId = 'garden';
+                    clickableMeshes.push(child);
+                }
+            });
+
+            islandGroup.add(gardenGroup);
+
+            // 散布全島的 Low-poly 針葉松與山櫻花樹
+            const treeSpots = [
+                [-6.8, 0.55, -3.5, 1.1, 0x15803d],
+                [-5.8, 0.55, -5.2, 1.35, 0x166534],
+                [-2.0, 0.55, -5.8, 1.25, 0x15803d],
+                [-0.5, 0.55, -4.5, 0.95, 0x22c55e],
+                [1.2, 0.55, -6.2, 1.3, 0x166534],
+                [5.8, 0.55, -3.5, 1.15, 0x15803d],
+                [7.2, 0.55, -0.5, 1.0, 0x166534],
+                [2.2, 0.55, 3.8, 0.9, 0xf472b6], // 山櫻花點綴
+                [-2.2, 0.55, 4.2, 1.05, 0x15803d],
+                [-6.5, 0.55, 2.2, 1.15, 0x166534],
+                [-4.8, 0.55, 4.5, 0.95, 0xf472b6] // 山櫻花點綴
+            ];
+
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x57534e, roughness: 0.9 });
+
+            treeSpots.forEach(([tx, ty, tz, scale, leafColor]) => {
+                const tree = new THREE.Group();
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * scale, 0.16 * scale, 0.7 * scale, 5), trunkMat);
+                trunk.position.y = 0.35 * scale;
+                trunk.castShadow = true;
+
+                const leafMat = new THREE.MeshStandardMaterial({ color: leafColor, roughness: 0.85, flatShading: true });
+                const crown1 = new THREE.Mesh(new THREE.ConeGeometry(0.65 * scale, 1.2 * scale, 6), leafMat);
+                crown1.position.y = 1.05 * scale;
+                crown1.castShadow = true;
+
+                const crown2 = new THREE.Mesh(new THREE.ConeGeometry(0.48 * scale, 0.95 * scale, 6), leafMat);
+                crown2.position.y = 1.65 * scale;
+                crown2.castShadow = true;
+
+                tree.add(trunk, crown1, crown2);
+                tree.position.set(tx, ty, tz);
+                islandGroup.add(tree);
+            });
+        }
+
+        /**
+         * 7. 建立 3D 空間對應的 HTML 懸浮標記點 (Hotspot Pins)
+         */
+        function createHotspotElements() {
+            const layer = document.getElementById('hotspots-layer');
+            layer.innerHTML = '';
+
+            LANDMARKS.forEach(item => {
+                const pin = document.createElement('div');
+                pin.id = `pin-${item.id}`;
+                pin.className = 'hotspot-pin pointer-events-auto flex flex-col items-center';
+                pin.onclick = (e) => {
+                    e.stopPropagation();
+                    focusLandmark(item.id);
+                };
+
+                pin.innerHTML = `
+                    <div class="px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-stone-200 flex items-center gap-1.5 text-xs font-black text-stone-800 whitespace-nowrap">
+                        <span class="w-4 h-4 rounded-full text-[10px] text-white flex items-center justify-center font-bold" style="background-color: ${item.color}">${item.num}</span>
+                        <span>${item.title}</span>
+                    </div>
+                    <div class="relative flex items-center justify-center mt-1">
+                        <span class="pin-pulse absolute w-5 h-5 rounded-full" style="background-color: ${item.color}"></span>
+                        <span class="w-3 h-3 rounded-full border-2 border-white shadow" style="background-color: ${item.color}"></span>
+                    </div>
+                `;
+                layer.appendChild(pin);
+            });
+        }
+
+        /**
+         * 更新 3D 標記點在螢幕上的 2D 投影位置
+         */
+        function updateHotspotPositions() {
+            LANDMARKS.forEach(item => {
+                const pinEl = document.getElementById(`pin-${item.id}`);
+                if (!pinEl) return;
+
+                // 若為火車地標，讓標記點跟著動態火車頭上方移動
+                const worldPos = item.id === 'train' && trainGroup
+                    ? trainGroup.position.clone().add(new THREE.Vector3(0, 1.85, 0))
+                    : item.pinPos.clone();
+
+                // 加上島嶼微微上下浮動的偏移
+                worldPos.y += islandGroup.position.y;
+
+                const projected = worldPos.project(camera);
+
+                // 判斷是否在相機視野前方
+                if (projected.z > 1) {
+                    pinEl.style.opacity = '0';
+                    pinEl.style.pointerEvents = 'none';
+                } else {
+                    const x = (projected.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = (-(projected.y * 0.5) + 0.5) * window.innerHeight;
+                    pinEl.style.left = `${x}px`;
+                    pinEl.style.top = `${y}px`;
+                    pinEl.style.opacity = '1';
+                    pinEl.style.pointerEvents = 'auto';
+                }
+            });
+        }
+
+        /**
+         * 8. 渲染右側／底部導覽面板的地標清單
+         */
+        function renderLandmarkList() {
+            const listContainer = document.getElementById('landmark-list');
+            listContainer.innerHTML = LANDMARKS.map(item => `
+                <button id="list-btn-${item.id}" onclick="focusLandmark('${item.id}')"
+                    class="w-full text-left p-3.5 rounded-2xl bg-white hover:bg-amber-50/70 active:scale-[0.99] border border-stone-200/80 shadow-sm transition-all flex items-start gap-3.5 group cursor-pointer">
+                    <span class="text-sm font-black tracking-tight px-2.5 py-1 rounded-xl text-white shrink-0 mt-0.5 transition-transform group-hover:scale-105"
+                          style="background-color: ${item.color}">
+                        ${item.num}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2">
+                            <h4 class="text-sm sm:text-base font-bold text-stone-900 group-hover:text-amber-800 truncate">${item.title}</h4>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-stone-400 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </div>
+                        <p class="text-xs text-stone-500 mt-0.5 line-clamp-2 leading-relaxed">${item.shortDesc}</p>
+                    </div>
+                </button>
+            `).join('');
+        }
+
+        /**
+         * 點擊地標（從 3D 場景或右側列表）：聚焦鏡頭並展開歷史故事卡片
+         */
+        function focusLandmark(id) {
+            const data = LANDMARKS.find(l => l.id === id);
+            if (!data) return;
+
+            activeLandmarkId = id;
+
+            // 更新標記點與列表按鈕的高亮狀態
+            document.querySelectorAll('.hotspot-pin').forEach(el => el.classList.remove('active'));
+            const activePin = document.getElementById(`pin-${id}`);
+            if (activePin) activePin.classList.add('active');
+
+            LANDMARKS.forEach(item => {
+                const btn = document.getElementById(`list-btn-${item.id}`);
+                if (!btn) return;
+                if (item.id === id) {
+                    btn.classList.add('ring-2', 'ring-amber-500', 'bg-amber-50/80');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-amber-500', 'bg-amber-50/80');
+                }
+            });
+
+            // 填入詳細故事卡片內容
+            const detailCard = document.getElementById('detail-card');
+            document.getElementById('detail-badge').textContent = `${data.num} 文化地標導覽`;
+            document.getElementById('detail-badge').style.backgroundColor = `${data.color}20`;
+            document.getElementById('detail-badge').style.color = data.color;
+            document.getElementById('detail-title').textContent = data.title;
+            document.getElementById('detail-subtitle').textContent = data.subtitle;
+            document.getElementById('detail-desc').textContent = data.fullDesc;
+
+            const tagsContainer = document.getElementById('detail-tags');
+            tagsContainer.innerHTML = data.tags.map(tag => `
+                <span class="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-stone-100 text-stone-600"># ${tag}</span>
+            `).join('');
+
+            detailCard.classList.remove('hidden');
+
+            // 將導覽面板捲動至頂部以顯示故事卡片
+            const scrollArea = document.getElementById('panel-scroll-area');
+            if (scrollArea) scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // 手機版自動稍微展開抽屜讓使用者方便閱讀
+            if (window.innerWidth < 640 && !isMobileDrawerExpanded) {
+                toggleMobileDrawer(true);
+            }
+
+            // 設定 3D 鏡頭平滑飛行目標
+            if (id === 'train' && trainGroup) {
+                const tPos = trainGroup.position.clone();
+                desiredTargetPos.copy(tPos).add(new THREE.Vector3(0, 0.8, 0));
+                desiredCamPos.copy(tPos).add(new THREE.Vector3(4.5, 4.2, 5.5));
+            } else {
+                desiredCamPos.copy(data.camPos);
+                desiredTargetPos.copy(data.targetPos);
+            }
+            isCameraAnimating = true;
+        }
+
+        /**
+         * 關閉詳細故事卡片
+         */
+        function closeDetailCard() {
+            activeLandmarkId = null;
+            document.getElementById('detail-card').classList.add('hidden');
+            document.querySelectorAll('.hotspot-pin').forEach(el => el.classList.remove('active'));
+            LANDMARKS.forEach(item => {
+                const btn = document.getElementById(`list-btn-${item.id}`);
+                if (btn) btn.classList.remove('ring-2', 'ring-amber-500', 'bg-amber-50/80');
+            });
+        }
+
+        /**
+         * 回到全島鳥瞰視角
+         */
+        function resetCameraView() {
+            closeDetailCard();
+            desiredCamPos.copy(defaultCamPos);
+            desiredTargetPos.copy(defaultTargetPos);
+            isCameraAnimating = true;
+            showToast('已重設為全島鳥瞰視角');
+        }
+
+        /**
+         * 切換日夜光影模式（日間山嵐 / 黃昏夕照）
+         */
+        function toggleLightingMode() {
+            isSunset = !isSunset;
+            const container = document.getElementById('canvas-container');
+            const body = document.body;
+            const icon = document.getElementById('theme-icon');
+            const label = document.getElementById('theme-label');
+
+            if (isSunset) {
+                container.classList.remove('theme-day');
+                container.classList.add('theme-sunset');
+                body.classList.remove('theme-day');
+                body.classList.add('theme-sunset');
+
+                icon.textContent = '🌇';
+                label.textContent = '黃昏夕照';
+
+                // 調整 3D 燈光為暖橘夕照色溫
+                sunLight.color.setHex(0xf97316);
+                sunLight.intensity = 1.55;
+                sunLight.position.set(-16, 11, 10);
+                hemiLight.color.setHex(0xfdba74);
+                hemiLight.groundColor.setHex(0x431407);
+                hemiLight.intensity = 0.65;
+                scene.fog.color.setHex(0xfdba74);
+
+                // 點亮庭園石燈籠暖光
+                lanternLights.forEach(l => l.intensity = 2.2);
+                showToast('已切換至「黃昏夕照」光影模式');
+            } else {
+                container.classList.remove('theme-sunset');
+                container.classList.add('theme-day');
+                body.classList.remove('theme-sunset');
+                body.classList.add('theme-day');
+
+                icon.textContent = '🌤️';
+                label.textContent = '日間山嵐';
+
+                // 還原清爽日間山嵐光影
+                sunLight.color.setHex(0xfffbeb);
+                sunLight.intensity = 1.35;
+                sunLight.position.set(14, 22, 12);
+                hemiLight.color.setHex(0xffffff);
+                hemiLight.groundColor.setHex(0x4d7c0f);
+                hemiLight.intensity = 0.75;
+                scene.fog.color.setHex(0xdbeafe);
+
+                lanternLights.forEach(l => l.intensity = 0.3);
+                showToast('已切換至「日間山嵐」光影模式');
+            }
+        }
+
+        /**
+         * 切換蒸汽火車啟動或暫停
+         */
+        function toggleTrainMotion() {
+            isTrainMoving = !isTrainMoving;
+            const icon = document.getElementById('train-icon');
+            const label = document.getElementById('train-label');
+
+            if (isTrainMoving) {
+                icon.textContent = '🚂';
+                label.textContent = '行駛中';
+                showToast('蒸汽火車已啟動巡禮');
+            } else {
+                icon.textContent = '⏸️';
+                label.textContent = '已停靠';
+                showToast('蒸汽火車已暫停靠站');
+            }
+        }
+
+        /**
+         * 使用 Tone.js 合成懷舊蒸汽火車雙音階汽笛聲（無需外部音檔）
+         */
+        async function playTrainWhistle() {
+            try {
+                await Tone.start();
+                const synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.15, decay: 0.3, sustain: 0.6, release: 0.8 }
+                }).toDestination();
+                synth.volume.value = -10;
+
+                const now = Tone.now();
+                // 模擬火車長短兩聲汽笛和弦 (D4 + A4 + F#4)
+                synth.triggerAttackRelease(['D4', 'F#4', 'A4'], '0.35', now);
+                synth.triggerAttackRelease(['D4', 'F#4', 'A4'], '0.95', now + 0.45);
+
+                // 額外噴發幾團白色蒸氣煙霧
+                for (let i = 0; i < 6; i++) {
+                    spawnSmokeParticle(true);
+                }
+                showToast('嗚—— 蒸汽火車鳴笛啟程！');
+            } catch (err) {
+                showToast('嗚—— 蒸汽火車鳴笛！');
+            }
+        }
+
+        /**
+         * 手機版底部抽屜展開與收合切換
+         */
+        function toggleMobileDrawer(forceExpand) {
+            if (window.innerWidth >= 640) return;
+            const panel = document.getElementById('info-panel');
+            const hint = document.getElementById('drawer-hint');
+
+            isMobileDrawerExpanded = typeof forceExpand === 'boolean' ? forceExpand : !isMobileDrawerExpanded;
+
+            if (isMobileDrawerExpanded) {
+                panel.style.height = '68vh';
+                hint.textContent = '點擊收合導覽面板';
+            } else {
+                panel.style.height = '42vh';
+                hint.textContent = '點擊展開 / 收合導覽面板';
+            }
+        }
+
+        /**
+         * 顯示輕量提示訊息 Toast
+         */
+        let toastTimer;
+        function showToast(msg) {
+            const toast = document.getElementById('toast-msg');
+            toast.textContent = msg;
+            toast.classList.remove('opacity-0');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2400);
+        }
+
+        /**
+         * 設定視窗大小調整與 3D 物件點擊偵測
+         */
+        function setupInteractions() {
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+
+                const panel = document.getElementById('info-panel');
+                if (window.innerWidth >= 640) {
+                    panel.style.height = '';
+                }
+            });
+
+            // 區分點擊與拖曳旋轉
+            let downX = 0, downY = 0;
+            const domEl = renderer.domElement;
+
+            domEl.addEventListener('pointerdown', (e) => {
+                downX = e.clientX;
+                downY = e.clientY;
+            });
+
+            domEl.addEventListener('pointerup', (e) => {
+                const dist = Math.hypot(e.clientX - downX, e.clientY - downY);
+                if (dist > 6) return; // 視為拖曳旋轉視角，不觸發點擊選取
+
+                pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+                pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(pointer, camera);
+                const intersects = raycaster.intersectObjects(clickableMeshes, false);
+                if (intersects.length > 0) {
+                    const hitId = intersects[0].object.userData.landmarkId;
+                    if (hitId) {
+                        focusLandmark(hitId);
+                    }
+                }
+            });
+        }
+
+        /**
+         * 生成蒸汽火車白煙粒子
+         */
+        function spawnSmokeParticle(burst = false) {
+            if (!trainGroup) return;
+            const geo = new THREE.DodecahedronGeometry(burst ? 0.18 : 0.13, 0);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.85,
+                flatShading: true
+            });
+            const puff = new THREE.Mesh(geo, mat);
+
+            // 取得煙囪在世界座標的位置
+            const chimneyLocal = new THREE.Vector3(0, 1.15, 0.62);
+            chimneyLocal.applyMatrix4(trainGroup.matrixWorld);
+            puff.position.copy(chimneyLocal);
+
+            puff.userData = {
+                vy: 0.018 + Math.random() * 0.012,
+                vx: (Math.random() - 0.5) * 0.01,
+                vz: (Math.random() - 0.5) * 0.01,
+                life: 1.0
+            };
+
+            scene.add(puff);
+            smokeParticles.push(puff);
+        }
+
+        /**
+         * 主動畫迴圈
+         */
+        let clock = new THREE.Clock();
+        let smokeTimer = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const elapsed = clock.getElapsedTime();
+
+            // 1. 島嶼微幅懸浮呼吸感
+            if (islandGroup) {
+                islandGroup.position.y = Math.sin(elapsed * 1.1) * 0.12;
+            }
+
+            // 2. 蒸汽火車沿環山軌道行駛
+            if (trainGroup && railCurve) {
+                if (isTrainMoving) {
+                    trainProgress = (trainProgress + delta * 0.038) % 1;
+                    smokeTimer += delta;
+                    if (smokeTimer > 0.28) {
+                        spawnSmokeParticle(false);
+                        smokeTimer = 0;
+                    }
+                }
+
+                const pt = railCurve.getPointAt(trainProgress);
+                const tangent = railCurve.getTangentAt(trainProgress);
+                trainGroup.position.copy(pt);
+                trainGroup.lookAt(pt.clone().add(tangent));
+            }
+
+            // 3. 更新白煙粒子飄散動畫
+            for (let i = smokeParticles.length - 1; i >= 0; i--) {
+                const p = smokeParticles[i];
+                p.position.y += p.userData.vy;
+                p.position.x += p.userData.vx;
+                p.position.z += p.userData.vz;
+                p.scale.addScalar(0.018);
+                p.userData.life -= delta * 0.75;
+                p.material.opacity = Math.max(0, p.userData.life);
+
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    p.geometry.dispose();
+                    p.material.dispose();
+                    smokeParticles.splice(i, 1);
+                }
+            }
+
+            // 4. 鏡頭平滑過渡飛行
+            if (isCameraAnimating) {
+                camera.position.lerp(desiredCamPos, 0.065);
+                controls.target.lerp(desiredTargetPos, 0.065);
+
+                if (camera.position.distanceTo(desiredCamPos) < 0.08 &&
+                    controls.target.distanceTo(desiredTargetPos) < 0.08) {
+                    isCameraAnimating = false;
+                }
+            }
+
+            controls.update();
+            updateHotspotPositions();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
